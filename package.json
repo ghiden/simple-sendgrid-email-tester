@@ -1,0 +1,16 @@
+{
+  "name": "simple-sendgrid-email-tester",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Just a simple email tool for sending html email via sendgrid",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Hidenari Nozaki",
+  "license": "MIT",
+  "dependencies": {
+    "sendgrid": "^1.7.0",
+    "yargs": "^3.8.0"
+  }
+}
