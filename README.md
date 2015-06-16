@@ -13,6 +13,10 @@
 4. Send
 
     ```
-    npm start -- --template template.html
+    npm start -- template.html contacts.csv --substitutions subs.csv
     ```
 
+## Sample Substitutions CSV File
+
+    %%firstName%%, firstName
+    %%lastName%%, lastName

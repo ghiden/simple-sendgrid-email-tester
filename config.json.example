@@ -4,5 +4,5 @@
   "subject": "Hello from Sendgrid",
   "from_name": "Test User",
   "from": "test@example.com",
-  "to": ["<test@example.com>"]
+  "category": "test-run"
 }
