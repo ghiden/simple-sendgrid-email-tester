@@ -50,7 +50,15 @@ function start() {
   var template;
 
   var config = JSON.parse(fs.readFileSync('./config.json'));
-  var sendgrid = sendgridAPI(config.api_user, config.api_key);
+  var sendgrid
+  if (process.env.SENDGRID_API_KEY) {
+    console.log('key found')
+    sendgrid = sendgridAPI(process.env.SENDGRID_API_KEY)
+  } else if (!config.api_user) {
+    sendgrid = sendgridAPI(config.api_key);
+  } else {
+    sendgrid = sendgridAPI(config.api_user, config.api_key);
+  }
 
   if (argv._.length != 2) {
     console.error('Missing arguments: e.g.');
