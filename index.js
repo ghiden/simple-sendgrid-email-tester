@@ -1,7 +1,7 @@
 "use strict";
 
 var fs = require('fs');
-var sendgridAPI = require('sendgrid');
+var sgMail = require('@sendgrid/mail');
 var argv = require('yargs').argv;
 var Promise = require('bluebird');
 var csvParse = Promise.promisify(require('csv-parse'));
@@ -29,36 +29,15 @@ function readCsv(file, callback) {
   });
 }
 
-function addSubstitutions(email, contacts, substitutionsFile) {
-  if (!substitutionsFile) {
-    return Promise.resolve(contacts);
-  }
-
-  console.log('Add substitutions');
-  return csvParse(fs.readFileSync(substitutionsFile, 'utf8'), {trim: true})
-    .then(function(rows) {
-      contacts.forEach(function(contact) {
-        rows.forEach(function(row) {
-          email.addSubstitution(row[0], contact[row[1]]);
-        });
-      });
-      return contacts;
-    });
-}
-
-function start() {
+async function start() {
   var template;
 
   var config = JSON.parse(fs.readFileSync('./config.json'));
-  var sendgrid
-  if (process.env.SENDGRID_API_KEY) {
-    console.log('key found')
-    sendgrid = sendgridAPI(process.env.SENDGRID_API_KEY)
-  } else if (!config.api_user) {
-    sendgrid = sendgridAPI(config.api_key);
-  } else {
-    sendgrid = sendgridAPI(config.api_user, config.api_key);
+  var key = process.env.SENDGRID_API_KEY || config.api_key;
+  if (!key) {
+    process.exit(1)
   }
+  sgMail.setApiKey(key)
 
   if (argv._.length != 2) {
     console.error('Missing arguments: e.g.');
@@ -67,47 +46,76 @@ function start() {
   }
 
   try {
-    template = fs.readFileSync(argv._[0]);
+    template = fs.readFileSync(argv._[0], 'utf8');
   } catch (err) {
     console.error('Template file does not exist: ', err);
     return;
   }
 
-  console.log('Starting...');
-
-  var email = new sendgrid.Email({
-    fromname: config.from_name,
-    from: config.from,
-    subject: config.subject,
-    html: template
-  });
-
-  if (config.category) {
-    email.addCategory(config.category);
+  let substitutions
+  if (argv.substitutions) {
+    try {
+      substitutions = await csvParse(fs.readFileSync(argv.substitutions, 'utf8'), {trim: true})
+    } catch(err) {
+      throw err
+    }
   }
 
-  readCsv(fs.readFileSync(argv._[1], 'utf8'))
-    .then(function(contacts) {
-      return addSubstitutions(email, contacts, argv.substitutions);
-    })
-    .then(function(contacts) {
-      console.log('Adding contacts...');
-      contacts.forEach(function(address, i) {
-        email.addTo(address.email);
-      });
+  let contacts
+  try {
+    contacts = await readCsv(fs.readFileSync(argv._[1], 'utf8'))
+  } catch(err) {
+    throw err
+  }
+  console.log(contacts)
 
-      console.log('Sending emails...');
-      sendgrid.send(email, function(err, json) {
-        if (err) {
-          console.error('error: ', err);
-        } else {
-          console.log('success: ', json);
-        }
-      });
-    })
-    .catch(function(err) {
-      console.error(err);
-    });
+  console.log('Adding contacts...');
+  const emails = contacts.map((c) => {
+    var email = {
+      from: {
+        name: config.from_name,
+        email: config.from,
+      },
+      subject: config.subject,
+      html: template,
+      to: c.email,
+    }
+
+    if (config.category) {
+      email.categories = [config.category]
+    }
+
+    if (config.substitutionWrappers) {
+      email.substitutionWrappers = config.substitutionWrappers
+    }
+
+    if (substitutions) {
+      email.substitutions = []
+      substitutions.forEach((s) => {
+        let sub = {}
+        sub[s] = c[s]
+        email.substitutions.push(sub)
+      })
+    }
+    return email
+  })
+
+  console.log('Sending emails...');
+
+  for (let i = 0; i < emails.length; i++) {
+    try {
+      console.log(i + 1)
+      await sgMail.send(emails[i])
+    } catch(err) {
+      console.error(err)
+    }
+  }
 }
 
-start();
+start()
+  .then(() => {
+    console.log('done')
+  })
+  .catch((err) => {
+    console.error(err)
+  })
