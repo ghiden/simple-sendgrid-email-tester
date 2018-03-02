@@ -2,7 +2,10 @@
   "api_user": "--your-user-name--",
   "api_key": "--your-api-key--",
   "subject": "Hello from Sendgrid",
-  "from_name": "Test User",
-  "from": "test@example.com",
-  "category": "test-run"
+  "from": {
+    "name": "Test User",
+    "email": "test@example.com"
+  },
+  "category": "test-run",
+  "substitutionWrappers": ["{{", "}}"]
 }

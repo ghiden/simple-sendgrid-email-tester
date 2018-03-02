@@ -4,4 +4,4 @@ node_modules
 *.html
 *.csv
 .DS_Store
-config.json.*
+config.json

@@ -1,14 +1,15 @@
 "use strict";
 
-var fs = require('fs');
-var sgMail = require('@sendgrid/mail');
-var argv = require('yargs').argv;
-var Promise = require('bluebird');
-var csvParse = Promise.promisify(require('csv-parse'));
+const fs = require('fs');
+const sgMail = require('@sendgrid/mail');
+const argv = require('yargs').argv;
+const Promise = require('bluebird');
+const csvParse = Promise.promisify(require('csv-parse'));
+const config = require('./config')
 
 function readCsv(file, callback) {
-  var headerArray;
-  var options = {
+  let headerArray;
+  const options = {
     trim: true,
     columns: function(header) {
       headerArray = header;
@@ -17,9 +18,9 @@ function readCsv(file, callback) {
   };
 
   return csvParse(file, options).then(function(rows) {
-    var results = [];
+    const results = [];
     rows.forEach(function(row) {
-      var obj = {};
+      const obj = {};
       headerArray.forEach(function(name, i) {
         obj[name] = row[i];
       });
@@ -30,10 +31,9 @@ function readCsv(file, callback) {
 }
 
 async function start() {
-  var template;
+  let template;
 
-  var config = JSON.parse(fs.readFileSync('./config.json'));
-  var key = process.env.SENDGRID_API_KEY || config.api_key;
+  const key = process.env.SENDGRID_API_KEY || config.api_key;
   if (!key) {
     process.exit(1)
   }
@@ -71,10 +71,10 @@ async function start() {
 
   console.log('Adding contacts...');
   const emails = contacts.map((c) => {
-    var email = {
+    const email = {
       from: {
-        name: config.from_name,
-        email: config.from,
+        name: config.from.name,
+        email: config.from.email,
       },
       subject: config.subject,
       html: template,
