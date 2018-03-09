@@ -81,6 +81,12 @@ async function start() {
       to: c.email,
     }
 
+    if (c.sendAt) {
+      const send_at = new Date(c.sendAt).getTime() / 1000
+      console.log('Setting send at to:', send_at)
+      email.send_at = send_at
+    }
+
     if (config.category) {
       email.categories = [config.category]
     }
